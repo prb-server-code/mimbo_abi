@@ -27,8 +27,8 @@ contract MimboCircuitB is Pausable, Ownable {
     // 차량 ID별 1회 합성 비용. 차량 ID => 합성 비용 토큰 수량
     mapping(uint256 => uint256) public mergePrices;
 
-    // 클레임 인덱스 관리. 클레임 인덱스(DB) => true이면 클레임 행위 성공
-    mapping(uint256 => bool) public earns;
+    // 클레임 인덱스 관리. 클레임 인덱스(DB) => 호출한 지갑
+    mapping(uint256 => address) public earns;
 
     constructor(address _TokenContract, address _TokenRallyHolder, address _TokenMergeHolder) {
         TokenContract_ = ERC20(_TokenContract);
@@ -102,9 +102,7 @@ contract MimboCircuitB is Pausable, Ownable {
     }
 
     function claim(uint256 earnIdx) public whenNotPaused {
-        require(earns[earnIdx] == false, "claim: Already Claimed");
-
-        earns[earnIdx] = true;
+        earns[earnIdx] = msg.sender;
 
         emit Claim(msg.sender, earnIdx);
     }

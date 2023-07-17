@@ -7,6 +7,9 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 contract MimboCarB is Pausable, Ownable {
     event Buy(address indexed from, uint256 carAmount, uint256 price, string recommendCode);
 
+    // 바이백 지갑
+    address payable public buyBackWallet_;
+
     // 차량 단가. wei
     uint256 public price_;
 
@@ -30,7 +33,8 @@ contract MimboCarB is Pausable, Ownable {
     // 2.5% => 25
     uint256 public fee_;
 
-    constructor(uint256 _price, uint256 _fee) {
+    constructor(address _buyBackWallet, uint256 _price, uint256 _fee) {
+        buyBackWallet_ = payable(_buyBackWallet);
         price_ = _price;
         fee_ = _fee;
     }
@@ -41,6 +45,12 @@ contract MimboCarB is Pausable, Ownable {
 
     function unpause() public onlyOwner {
         _unpause();
+    }
+
+    // 바이백 지갑 변경
+    function setBuyBackWallet(address _buyBackWallet) public onlyOwner {
+        require(_buyBackWallet != address(0), "buyBackWallet is zero address");
+        buyBackWallet_ = payable(_buyBackWallet);
     }
 
     // 차량 단가 설정
@@ -96,6 +106,10 @@ contract MimboCarB is Pausable, Ownable {
         // 수량 결정
         uint256 carAmount = msg.value / price_;
         require(carAmount * price_ == msg.value, "buy: incorrect value");
+
+        // 바이백 지갑으로 전송
+        uint256 buyBackAmount = msg.value / 2;
+        buyBackWallet_.transfer(buyBackAmount);
 
         // 수수료 처리 및 기록 보관
         if(feeAddress != address(0)) {

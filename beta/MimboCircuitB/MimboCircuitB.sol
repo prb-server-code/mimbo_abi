@@ -13,6 +13,7 @@ contract MimboCircuitB is Pausable, Ownable {
     event Deposit(address indexed from, uint256 rallyNumber);
     event Withdraw(address indexed from, uint256 rallyNumber);
     event Merge(address indexed from, uint256 carId, uint256 mergeCount);
+    event Claim(address indexed from, uint256 earnIdx);
 
     // 랠리 넘버 관리. 지갑 => 랠리넘버
     mapping(address => uint256) public rallyNumbers;
@@ -25,6 +26,9 @@ contract MimboCircuitB is Pausable, Ownable {
 
     // 차량 ID별 1회 합성 비용. 차량 ID => 합성 비용 토큰 수량
     mapping(uint256 => uint256) public mergePrices;
+
+    // 클레임 인덱스 관리. 클레임 인덱스(DB) => true이면 클레임 행위 성공
+    mapping(uint256 => bool) public earns;
 
     constructor(address _TokenContract, address _TokenRallyHolder, address _TokenMergeHolder) {
         TokenContract_ = ERC20(_TokenContract);
@@ -58,7 +62,7 @@ contract MimboCircuitB is Pausable, Ownable {
         }
     }
 
-    function deposit(uint256 rallyNumber) public {
+    function deposit(uint256 rallyNumber) public whenNotPaused {
         require(rallyNumbers[msg.sender] + 1 == rallyNumber, "deposit: Invalid order");
         require(rallyDepositPrices[rallyNumber] > 0, "deposit: Invlaid rallyNumber");
         require(TokenContract_.balanceOf(msg.sender) >= rallyDepositPrices[rallyNumber], "deposit: Not enough token amount");
@@ -72,7 +76,7 @@ contract MimboCircuitB is Pausable, Ownable {
         emit Deposit(msg.sender, rallyNumber);
     }
 
-    function withdraw(uint256 rallyNumber) public {
+    function withdraw(uint256 rallyNumber) public whenNotPaused {
         require(0 < rallyNumber, "withdraw: Invalid rallyNumber");
         require(rallyNumbers[msg.sender] == rallyNumber, "withdraw: Invalid rallyNumber");
 
@@ -84,7 +88,7 @@ contract MimboCircuitB is Pausable, Ownable {
         emit Withdraw(msg.sender, rallyNumber);
     }
 
-    function merge(uint256 carId, uint256 mergeCount) public {
+    function merge(uint256 carId, uint256 mergeCount) public whenNotPaused {
         require(mergePrices[carId] > 0, "merge: Invlaid carId");
 
         uint256 tokenAmount = mergeCount * mergePrices[carId];
@@ -95,6 +99,14 @@ contract MimboCircuitB is Pausable, Ownable {
         require(TokenContract_.transferFrom(msg.sender, TokenMergeHolder_, tokenAmount), "merge: erc20 transfer failed");
 
         emit Merge(msg.sender, carId, mergeCount);
+    }
+
+    function claim(uint256 earnIdx) public whenNotPaused {
+        require(earns[earnIdx] == false, "claim: Already Claimed");
+
+        earns[earnIdx] = true;
+
+        emit Claim(msg.sender, earnIdx);
     }
 
     // getter

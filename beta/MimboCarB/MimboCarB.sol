@@ -65,15 +65,18 @@ contract MimboCarB is Pausable, Ownable {
     }
 
     // 추천인 코드 설정
-    function setRecommendCode(string memory _recommendCode, address _codeOwner) public onlyOwner {
+    function setRecommendCode(string[] memory _recommendCode, address[] memory _codeOwner) public onlyOwner {
         // 아래 require 주석이면 zero address를 넣는 경우에 추천인 코드 삭제하는 기능과 동일.
         // require(_codeOwner != address(0), "setRecommendCode: can not set codeOwner to the zero address");
 
-        recommendCodes_[_recommendCode] = _codeOwner;
+        require(_recommendCode.length == _codeOwner.length, "setRecommendCode: codes and owners are not matched");
+        for (uint256 i = 0; i < _recommendCode.length; ++i) {
+            recommendCodes_[_recommendCode[i]] = _codeOwner[i];
 
-        if(_codeOwner != address(0)) {
-            CodeStat storage codeStat = codeStats_[_recommendCode];
-            codeStat.codeOwner = _codeOwner;
+            if(_codeOwner[i] != address(0)) {
+                CodeStat storage codeStat = codeStats_[_recommendCode[i]];
+                codeStat.codeOwner = _codeOwner[i];
+            }
         }
     }
 
